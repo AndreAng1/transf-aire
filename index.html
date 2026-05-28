@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estimateur des frais — TransF-Aire</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #2c2a1e; --bg2: #3a3726; --bg3: #4a4730;
+    --gold: #c8a84b; --gold2: #e8c96a;
+    --text: #f0ead8; --muted: #a09880;
+    --border: rgba(200,168,75,0.25);
+    --input-bg: rgba(255,255,255,0.06);
+    --radius: 10px;
+  }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 2rem 1rem;
+  }
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    width: 100%; max-width: 520px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+  }
+  .header { text-align: center; margin-bottom: 2rem; }
+  .logo-line { font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.5rem; }
+  h1 { font-family: 'DM Serif Display', serif; font-size: 1.9rem; color: var(--text); line-height: 1.2; margin-bottom: 0.4rem; }
+  .subtitle { font-size: 13px; color: var(--muted); }
+  .divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
+  .field { margin-bottom: 1.2rem; }
+  label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.03em; }
+  .input-wrap { position: relative; display: flex; align-items: center; }
+  .currency-badge { position: absolute; right: 14px; font-size: 12px; font-weight: 500; color: var(--gold); letter-spacing: 0.05em; pointer-events: none; }
+  input[type="number"] {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 13px 70px 13px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px; color: var(--text);
+    outline: none; transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input[type="number"]:focus { border-color: var(--gold); }
+  input[type="number"].active-source { border-color: var(--gold); background: rgba(200,168,75,0.08); }
+
+  .ou-separator { display: flex; align-items: center; gap: 12px; margin: 0.25rem 0 1.2rem; }
+  .ou-separator::before, .ou-separator::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .ou-separator span { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .result-box {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 13px 16px;
+    font-size: 16px; color: var(--text);
+    min-height: 48px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .result-value { font-weight: 500; font-size: 17px; }
+  .result-currency { font-size: 12px; color: var(--gold); font-weight: 500; letter-spacing: 0.05em; }
+  .result-empty { color: var(--muted); font-size: 14px; }
+
+  .highlight-card {
+    background: rgba(200,168,75,0.08); border: 1px solid rgba(200,168,75,0.35);
+    border-radius: var(--radius); padding: 13px 16px;
+    min-height: 48px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .highlight-value { font-size: 20px; font-weight: 500; color: var(--gold2); }
+  .highlight-currency { font-size: 12px; color: var(--gold); font-weight: 500; letter-spacing: 0.05em; }
+  .fee-chip { font-size: 11px; background: rgba(200,168,75,0.15); color: var(--gold); padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(200,168,75,0.3); }
+  .taux-note { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+  /* Toggle */
+  .toggle-wrap {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--input-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px;
+    cursor: pointer; user-select: none;
+    transition: opacity 0.2s;
+  }
+  .toggle-wrap.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+  .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: rgba(255,255,255,0.15); border-radius: 22px; transition: background 0.25s; cursor: pointer; }
+  .toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.25s; }
+  .toggle input:checked + .toggle-slider { background: var(--gold); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+  .toggle-label { font-size: 14px; color: var(--text); }
+  .toggle-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .reset-btn {
+    width: 100%; margin-top: 0.5rem; padding: 12px;
+    background: transparent; border: 1px solid rgba(255,255,255,0.12);
+    border-radius: var(--radius); color: var(--muted);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color: var(--border); color: var(--text); background: var(--input-bg); }
+
+  .whatsapp-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; margin-top: 0.75rem; padding: 13px;
+    background: #25D366; border: none; border-radius: var(--radius);
+    color: white; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    text-decoration: none; transition: opacity 0.2s;
+  }
+  .whatsapp-btn:hover { opacity: 0.88; }
+  .whatsapp-icon { width: 20px; height: 20px; fill: white; }
+  .footer-note { text-align: center; font-size: 11px; color: var(--muted); margin-top: 1.5rem; }
+
+  @media (max-width: 480px) {
+    .card { padding: 1.75rem 1.25rem; }
+    h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <p class="logo-line">TransF-Aire</p>
+    <h1>Estimateur de frais</h1>
+    <p class="subtitle">Transferts vers le Maroc — FCFA ↔ Dirhams</p>
+  </div>
+
+  <div class="field">
+    <label>Montant à envoyer en FCFA</label>
+    <div class="input-wrap">
+      <input type="number" id="fcfa-input" placeholder="Ex : 50 000" min="0" oninput="onFcfaInput()">
+      <span class="currency-badge">FCFA</span>
+    </div>
+  </div>
+
+  <div class="ou-separator"><span>ou</span></div>
+
+  <div class="field">
+    <label>Montant à recevoir en Dirhams (MAD)</label>
+    <div class="input-wrap">
+      <input type="number" id="mad-input" placeholder="Ex : 800" min="0" oninput="onMadInput()">
+      <span class="currency-badge">MAD</span>
+    </div>
+    <p class="taux-note">Taux de change : 1 FCFA = 0,0152843 MAD</p>
+  </div>
+
+  <div class="field">
+    <div class="toggle-wrap" id="toggle-wrap" onclick="toggleFrais()">
+      <label class="toggle">
+        <input type="checkbox" id="frais-inclus">
+        <span class="toggle-slider"></span>
+      </label>
+      <div>
+        <p class="toggle-label">Frais compris dans le montant</p>
+        <p class="toggle-sub" id="toggle-sub">Activez si les frais sont inclus dans la somme saisie</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="field">
+    <label>Montant total à envoyer (avec frais)</label>
+    <div id="total-box" class="highlight-card">
+      <span class="result-empty">—</span>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Montant reçu en Dirhams (MAD)</label>
+    <div id="mad-result-box" class="result-box">
+      <span class="result-empty">—</span>
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="reset()">Tout effacer</button>
+
+  <a class="whatsapp-btn" href="https://wa.me/" target="_blank">
+    <svg class="whatsapp-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.554 4.107 1.523 5.835L.057 23.856a.5.5 0 00.608.608l6.064-1.447A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.808 9.808 0 01-5.052-1.397l-.363-.215-3.758.897.921-3.663-.236-.376A9.795 9.795 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
+    </svg>
+    Nous contacter sur WhatsApp
+  </a>
+</div>
+
+<p class="footer-note">Les frais sont estimatifs — contactez-nous pour confirmer le taux du jour.</p>
+
+<script>
+const TAUX = 0.0152843095;
+let activeSource = null;
+
+function getTauxFrais(fcfa) {
+  if (fcfa <= 10000) return 0.236;
+  if (fcfa <= 50000) return 0.0865;
+  if (fcfa <= 100000) return 0.0862;
+  if (fcfa <= 200000) return 0.0826;
+  if (fcfa <= 500000) return 0.075;
+  return 0.07;
+}
+
+function getCoeffAvecFrais(fcfa) {
+  if (fcfa <= 10000) return 0.9205;
+  if (fcfa <= 50000) return 0.924;
+  if (fcfa <= 100000) return 0.9185;
+  if (fcfa <= 150000) return 0.9173;
+  if (fcfa <= 200000) return 0.9225;
+  if (fcfa <= 250000) return 0.927;
+  if (fcfa <= 300000) return 0.9296;
+  if (fcfa <= 350000) return 0.9317;
+  if (fcfa <= 400000) return 0.9335;
+  if (fcfa <= 450000) return 0.93465;
+  if (fcfa <= 500000) return 0.9356;
+  if (fcfa <= 550000) return 0.9345;
+  if (fcfa <= 600000) return 0.9326;
+  if (fcfa <= 650000) return 0.9315;
+  if (fcfa <= 700000) return 0.9316;
+  if (fcfa <= 750000) return 0.9325;
+  if (fcfa <= 800000) return 0.9333;
+  if (fcfa <= 850000) return 0.9339;
+  if (fcfa <= 900000) return 0.9345;
+  if (fcfa <= 950000) return 0.9351;
+  if (fcfa <= 1000000) return 0.9356;
+  return 0.9355;
+}
+
+function fmt(n) {
+  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
+}
+
+function onFcfaInput() {
+  activeSource = 'fcfa';
+  document.getElementById('mad-input').value = '';
+  document.getElementById('fcfa-input').classList.add('active-source');
+  document.getElementById('mad-input').classList.remove('active-source');
+  // Réactiver le toggle
+  document.getElementById('toggle-wrap').classList.remove('disabled');
+  document.getElementById('toggle-sub').textContent = 'Activez si les frais sont inclus dans la somme saisie';
+  calcul();
+}
+
+function onMadInput() {
+  activeSource = 'mad';
+  document.getElementById('fcfa-input').value = '';
+  document.getElementById('mad-input').classList.add('active-source');
+  document.getElementById('fcfa-input').classList.remove('active-source');
+  // Désactiver et décocher le toggle
+  document.getElementById('frais-inclus').checked = false;
+  document.getElementById('toggle-wrap').classList.add('disabled');
+  document.getElementById('toggle-sub').textContent = 'Non applicable — le montant MAD est ce que reçoit le bénéficiaire';
+  calcul();
+}
+
+function calcul() {
+  const fraisInclus = document.getElementById('frais-inclus').checked;
+  const totalBox = document.getElementById('total-box');
+  const madResultBox = document.getElementById('mad-result-box');
+
+  const fcfaSaisi = parseFloat(document.getElementById('fcfa-input').value);
+  const madSaisi = parseFloat(document.getElementById('mad-input').value);
+
+  if (activeSource === 'fcfa' && (!fcfaSaisi || fcfaSaisi <= 0)) { vider(); return; }
+  if (activeSource === 'mad' && (!madSaisi || madSaisi <= 0)) { vider(); return; }
+  if (!activeSource) { vider(); return; }
+
+  let totalFcfa, madRecu, tauxPct;
+
+  if (activeSource === 'fcfa') {
+    if (fraisInclus) {
+      // Frais inclus : le montant saisi EST le total à envoyer
+      totalFcfa = fcfaSaisi;
+      const coeff = getCoeffAvecFrais(fcfaSaisi);
+      madRecu = fcfaSaisi * coeff * TAUX;
+      tauxPct = Math.round((1 - coeff) * 10000) / 100;
+    } else {
+      // Frais à ajouter
+      const taux = getTauxFrais(fcfaSaisi);
+      totalFcfa = fcfaSaisi * (1 + taux);
+      madRecu = fcfaSaisi * TAUX;
+      tauxPct = Math.round(taux * 10000) / 100;
+    }
+  } else {
+    // Source MAD : le bénéficiaire reçoit exactement madSaisi
+    // On calcule le FCFA de base, puis on ajoute les frais
+    const fcfaBase = madSaisi / TAUX;
+    const taux = getTauxFrais(fcfaBase);
+    totalFcfa = fcfaBase * (1 + taux);
+    madRecu = madSaisi; // le bénéficiaire reçoit exactement ce qui a été saisi
+    tauxPct = Math.round(taux * 10000) / 100;
+  }
+
+  totalBox.innerHTML =
+    '<span class="highlight-value">' + fmt(totalFcfa) + '</span>' +
+    '<div style="text-align:right">' +
+      '<span class="highlight-currency">FCFA</span><br>' +
+      '<span class="fee-chip">Frais ' + tauxPct + '%</span>' +
+    '</div>';
+
+  madResultBox.innerHTML =
+    '<span class="result-value">' + fmt(madRecu) + '</span>' +
+    '<span class="result-currency">MAD</span>';
+}
+
+function vider() {
+  document.getElementById('total-box').innerHTML = '<span class="result-empty">—</span>';
+  document.getElementById('mad-result-box').innerHTML = '<span class="result-empty">—</span>';
+}
+
+function toggleFrais() {
+  if (activeSource === 'mad') return;
+  const cb = document.getElementById('frais-inclus');
+  cb.checked = !cb.checked;
+  calcul();
+}
+
+function reset() {
+  document.getElementById('fcfa-input').value = '';
+  document.getElementById('mad-input').value = '';
+  document.getElementById('frais-inclus').checked = false;
+  document.getElementById('fcfa-input').classList.remove('active-source');
+  document.getElementById('mad-input').classList.remove('active-source');
+  document.getElementById('toggle-wrap').classList.remove('disabled');
+  document.getElementById('toggle-sub').textContent = 'Activez si les frais sont inclus dans la somme saisie';
+  activeSource = null;
+  vider();
+}
+</script>
+</body>
+</html>
