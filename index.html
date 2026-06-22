@@ -78,7 +78,6 @@
   }
   .highlight-value { font-size: 20px; font-weight: 500; color: var(--gold2); }
   .highlight-currency { font-size: 12px; color: var(--gold); font-weight: 500; letter-spacing: 0.05em; }
-  .fee-chip { font-size: 11px; background: rgba(200,168,75,0.15); color: var(--gold); padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(200,168,75,0.3); }
   .taux-note { font-size: 11px; color: var(--muted); margin-top: 5px; }
 
   /* Toggle */
@@ -242,7 +241,6 @@ function onFcfaInput() {
   document.getElementById('mad-input').value = '';
   document.getElementById('fcfa-input').classList.add('active-source');
   document.getElementById('mad-input').classList.remove('active-source');
-  // Réactiver le toggle
   document.getElementById('toggle-wrap').classList.remove('disabled');
   document.getElementById('toggle-sub').textContent = 'Activez si les frais sont inclus dans la somme saisie';
   calcul();
@@ -253,7 +251,6 @@ function onMadInput() {
   document.getElementById('fcfa-input').value = '';
   document.getElementById('mad-input').classList.add('active-source');
   document.getElementById('fcfa-input').classList.remove('active-source');
-  // Désactiver et décocher le toggle
   document.getElementById('frais-inclus').checked = false;
   document.getElementById('toggle-wrap').classList.add('disabled');
   document.getElementById('toggle-sub').textContent = 'Non applicable — le montant MAD est ce que reçoit le bénéficiaire';
@@ -272,38 +269,28 @@ function calcul() {
   if (activeSource === 'mad' && (!madSaisi || madSaisi <= 0)) { vider(); return; }
   if (!activeSource) { vider(); return; }
 
-  let totalFcfa, madRecu, tauxPct;
+  let totalFcfa, madRecu;
 
   if (activeSource === 'fcfa') {
     if (fraisInclus) {
-      // Frais inclus : le montant saisi EST le total à envoyer
       totalFcfa = fcfaSaisi;
       const coeff = getCoeffAvecFrais(fcfaSaisi);
       madRecu = fcfaSaisi * coeff * TAUX;
-      tauxPct = Math.round((1 - coeff) * 10000) / 100;
     } else {
-      // Frais à ajouter
       const taux = getTauxFrais(fcfaSaisi);
       totalFcfa = fcfaSaisi * (1 + taux);
       madRecu = fcfaSaisi * TAUX;
-      tauxPct = Math.round(taux * 10000) / 100;
     }
   } else {
-    // Source MAD : le bénéficiaire reçoit exactement madSaisi
-    // On calcule le FCFA de base, puis on ajoute les frais
     const fcfaBase = madSaisi / TAUX;
     const taux = getTauxFrais(fcfaBase);
     totalFcfa = fcfaBase * (1 + taux);
-    madRecu = madSaisi; // le bénéficiaire reçoit exactement ce qui a été saisi
-    tauxPct = Math.round(taux * 10000) / 100;
+    madRecu = madSaisi;
   }
 
   totalBox.innerHTML =
     '<span class="highlight-value">' + fmt(totalFcfa) + '</span>' +
-    '<div style="text-align:right">' +
-      '<span class="highlight-currency">FCFA</span><br>' +
-      '<span class="fee-chip">Frais ' + tauxPct + '%</span>' +
-    '</div>';
+    '<span class="highlight-currency">FCFA</span>';
 
   madResultBox.innerHTML =
     '<span class="result-value">' + fmt(madRecu) + '</span>' +
